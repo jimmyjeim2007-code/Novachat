@@ -132,6 +132,24 @@ HTML_PAGE = '''
             </div>
         </div>
     </div>
+    <!-- Call Interface Container -->
+<div id="callContainer" style="display: none; background: #111; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 10px;">
+    <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+        <video id="localVideo" autoplay muted playsinline style="width: 120px; height: 90px; border-radius: 4px; background: #000; object-fit: cover;"></video>
+        <video id="remoteVideo" autoplay playsinline style="width: 120px; height: 90px; border-radius: 4px; background: #000; object-fit: cover;"></video>
+    </div>
+    <audio id="remoteAudio" autoplay></audio>
+    <div>
+        <button onclick="endCall()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">End Call</button>
+    </div>
+</div>
+
+<!-- Call Action Buttons -->
+<div style="display: flex; gap: 5px; margin-bottom: 8px;">
+    <button onclick="startCall('audio')" style="background: #10b981; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Audio Call</button>
+    <button onclick="startCall('video')" style="background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Video Call</button>
+</div>
+
 
     <script>
         var socket = io();
@@ -319,6 +337,118 @@ function verifyAndReset() {
             msgBox.appendChild(div);
             msgBox.scrollTop = msgBox.scrollHeight;
         });
+        let localStream;
+let peerConnection;
+let currentCallType = 'video';
+
+const iceServers = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+};
+
+async function startCall(type) {
+    currentCallType = type;
+    document.getElementById('callContainer').style.display = 'block';
+    
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: type === 'video',
+            audio: true
+        });
+        document.getElementById('localVideo').srcObject = localStream;
+        
+        createPeerConnection();
+        
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        
+        socket.emit('call_user', {
+            caller: myIdentity,
+            caller_name: myName,
+            target: currentChatTargetIdentity,
+            signal: offer,
+            type: type
+        });
+    } catch (err) {
+        alert('Camera or Microphone access denied!');
+    }
+}
+
+function createPeerConnection() {
+    peerConnection = new RTCPeerConnection(iceServers);
+    
+    peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+            socket.emit('ice_candidate', {
+                user: myIdentity,
+                target: currentChatTargetIdentity,
+                candidate: event.candidate
+            });
+        }
+    };
+    
+    peerConnection.ontrack = event => {
+        if (currentCallType === 'video') {
+            document.getElementById('remoteVideo').srcObject = event.streams[0];
+        } else {
+            document.getElementById('remoteAudio').srcObject = event.streams[0];
+        }
+    };
+}
+
+socket.on('incoming_call', async data => {
+    if (confirm('Incoming ' + data.type + ' call from ' + data.caller_name + '. Accept?')) {
+        currentCallType = data.type;
+        document.getElementById('callContainer').style.display = 'block';
+        
+        localStream = await navigator.mediaDevices.getUserMedia({
+            video: data.type === 'video',
+            audio: true
+        });
+        document.getElementById('localVideo').srcObject = localStream;
+        
+        createPeerConnection();
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+        
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        
+        socket.emit('answer_call', {
+            caller: data.caller,
+            target: myIdentity,
+            signal: answer
+        });
+    }
+});
+
+socket.on('call_answered', async data => {
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
+});
+
+socket.on('remote_ice_candidate', async data => {
+    if (peerConnection) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    }
+});
+
+function endCall() {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+    if (peerConnection) {
+        peerConnection.close();
+    }
+    document.getElementById('callContainer').style.display = 'none';
+    socket.emit('end_call', { user: myIdentity, target: currentChatTargetIdentity });
+}
+
+socket.on('call_ended', () => {
+    endCall();
+    alert('Call ended by other user.');
+});
+
     </script>
 </body>
 </html>
@@ -384,7 +514,35 @@ def handle_send_otp(data):
         emit('otp_sent_response', {'success': True, 'code': code, 'message': 'Verification code generated!'})
     else:
         emit('otp_sent_response', {'success': False, 'message': 'Account not found!'})
+@socketio.on('call_user')
+def handle_call_user(data):
+    room = "".join(sorted([data['caller'], data['target']]))
+    emit('incoming_call', {
+        'caller': data['caller'],
+        'caller_name': data['caller_name'],
+        'signal': data['signal'],
+        'type': data['type']
+    }, room=room, include_self=False)
 
+@socketio.on('answer_call')
+def handle_answer_call(data):
+    room = "".join(sorted([data['caller'], data['target']]))
+    emit('call_answered', {
+        'signal': data['signal']
+    }, room=room, include_self=False)
+
+@socketio.on('ice_candidate')
+def handle_ice_candidate(data):
+    room = "".join(sorted([data['user'], data['target']]))
+    emit('remote_ice_candidate', {
+        'candidate': data['candidate']
+    }, room=room, include_self=False)
+
+@socketio.on('end_call')
+def handle_end_call(data):
+    room = "".join(sorted([data['user'], data['target']]))
+    emit('call_ended', {}, room=room, include_self=False)
+    
 @socketio.on('verify_and_reset')
 def handle_verify_and_reset(data):
     identity = data.get('identity')
