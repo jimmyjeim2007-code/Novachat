@@ -137,6 +137,47 @@ HTML_PAGE = '''
         var socket = io();
         var myName = "", myIdentity = "", myAvatar = "";
         var currentChatTargetIdentity = "", currentChatTargetName = "", currentChatTargetAvatar = "";
+function showForgotPassword() {
+    document.getElementById('forgotSection').style.display = 'block';
+    document.getElementById('stepOne').style.display = 'block';
+    document.getElementById('stepTwo').style.display = 'none';
+}
+
+function requestOtp() {
+    var identity = document.getElementById('resetIdentity').value.trim();
+    if (!identity) {
+        alert('Please enter your Phone Number or Gmail first!');
+        return;
+    }
+    socket.emit('send_otp', { identity: identity });
+}
+
+socket.on('otp_sent_response', function(res) {
+    if (res.success) {
+        alert('OTP Code (For Testing): ' + res.code);
+        document.getElementById('stepOne').style.display = 'none';
+        document.getElementById('stepTwo').style.display = 'block';
+    } else {
+        alert(res.message);
+    }
+});
+
+function verifyAndReset() {
+    var identity = document.getElementById('resetIdentity').value.trim();
+    var code = document.getElementById('verificationCode').value.trim();
+    var newPassword = document.getElementById('newPassword').value.trim();
+
+    if (!code || !newPassword) {
+        alert('Please fill in both fields!');
+        return;
+    }
+
+    socket.emit('verify_and_reset', {
+        identity: identity,
+        code: code,
+        new_password: newPassword
+    });
+}
 
         function handleLogin() {
             var name = document.getElementById('nameInput').value.trim();
