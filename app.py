@@ -69,11 +69,21 @@ HTML_PAGE = '''
         <button onclick="handleLogin()">Continue</button>
         <a href="#" onclick="showForgotPassword()" style="color: #60a5fa; font-size: 13px; text-decoration: none; display: block; margin-top: 10px; text-align: center;">Forgot Password?</a>
 
+ href="#" onclick="showForgotPassword()" style="color: #60a5fa; font-size: 13px; text-decoration: none; display: block; margin-top: 10px; text-align: center;">Forgot Password?</a>
+
 <div id="forgotSection" style="display: none; margin-top: 15px;">
-    <input type="text" id="resetIdentity" placeholder="Your Phone or Gmail.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
-    <input type="password" id="newPassword" placeholder="New Password.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
-    <button onclick="resetPassword()" style="width: 100%; padding: 8px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">Update Password</button>
+    <div id="stepOne">
+        <input type="text" id="resetIdentity" placeholder="Your Phone or Gmail.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+        <button onclick="requestOtp()" style="width: 100%; padding: 8px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">Send Verification Code</button>
+    </div>
+
+    <div id="stepTwo" style="display: none; margin-top: 10px;">
+        <input type="text" id="verificationCode" placeholder="Enter 4-digit Code.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+        <input type="password" id="newPassword" placeholder="New Password.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+        <button onclick="verifyAndReset()" style="width: 100%; padding: 8px; background: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer;">Verify & Update Password</button>
+    </div>
 </div>
+
 
         <p class="error" id="loginError">Please fill all fields correctly!</p>
     </div>
@@ -322,6 +332,31 @@ def handle_search_user(data):
         })
     else:
         emit('search_response', {'found': False})
+        otp_storage = {}
+
+@socketio.on('send_otp')
+def handle_send_otp(data):
+    identity = data.get('identity')
+    
+    if identity in user_accounts:
+        code = str(random.randint(1000, 9999))
+        otp_storage[identity] = code
+        emit('otp_sent_response', {'success': True, 'code': code, 'message': 'Verification code generated!'})
+    else:
+        emit('otp_sent_response', {'success': False, 'message': 'Account not found!'})
+
+@socketio.on('verify_and_reset')
+def handle_verify_and_reset(data):
+    identity = data.get('identity')
+    entered_code = data.get('code')
+    new_password = data.get('new_password')
+    
+    if identity in otp_storage and otp_storage[identity] == entered_code:
+        user_accounts[identity]['password'] = new_password
+        del otp_storage[identity]
+        emit('login_response', {'success': True, 'message': 'Password updated successfully!'})
+    else:
+        emit('login_response', {'success': False, 'message': 'Invalid verification code!'})
 
 @socketio.on('join_private_chat')
 def handle_join_private(data):
