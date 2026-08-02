@@ -69,7 +69,6 @@ HTML_PAGE = '''
         <button onclick="handleLogin()">Continue</button>
         <a href="#" onclick="showForgotPassword()" style="color: #60a5fa; font-size: 13px; text-decoration: none; display: block; margin-top: 10px; text-align: center;">Forgot Password?</a>
 
- href="#" onclick="showForgotPassword()" style="color: #60a5fa; font-size: 13px; text-decoration: none; display: block; margin-top: 10px; text-align: center;">Forgot Password?</a>
 
 <div id="forgotSection" style="display: none; margin-top: 15px;">
     <div id="stepOne">
