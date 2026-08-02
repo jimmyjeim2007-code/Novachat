@@ -3,7 +3,7 @@ from flask import Flask, render_template_string, request, send_from_directory
 from flask_socketio import SocketIO, emit, join_room
 from werkzeug.utils import secure_filename
 
-app = Flask("BlinkTalk")
+app = Flask("Novachat")
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
