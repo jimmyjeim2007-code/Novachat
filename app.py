@@ -67,6 +67,14 @@ HTML_PAGE = '''
         </label>
         
         <button onclick="handleLogin()">Continue</button>
+        <a href="#" onclick="showForgotPassword()" style="color: #60a5fa; font-size: 13px; text-decoration: none; display: block; margin-top: 10px; text-align: center;">Forgot Password?</a>
+
+<div id="forgotSection" style="display: none; margin-top: 15px;">
+    <input type="text" id="resetIdentity" placeholder="Your Phone or Gmail.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+    <input type="password" id="newPassword" placeholder="New Password.." style="width: 100%; padding: 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 4px;">
+    <button onclick="resetPassword()" style="width: 100%; padding: 8px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">Update Password</button>
+</div>
+
         <p class="error" id="loginError">Please fill all fields correctly!</p>
     </div>
 
