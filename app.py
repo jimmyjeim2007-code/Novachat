@@ -126,8 +126,8 @@ HTML_PAGE = '''
         </div>
         
         <!-- 3. CHAT SCREEN -->
-        <div class="card hidden" id="chatScreen">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <img id="chatTargetAvatar" src="" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
                     <div>
@@ -141,6 +141,19 @@ HTML_PAGE = '''
                 </div>
             </div>
             
+            <div id="callContainer" style="display: none; background: #111; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                    <video id="localVideo" autoplay muted playsinline style="width: 100px; height: 80px; border-radius: 4px; background: #000; object-fit: cover;"></video>
+                    <video id="remoteVideo" autoplay playsinline style="width: 100px; height: 80px; border-radius: 4px; background: #000; object-fit: cover;"></video>
+                </div>
+                <audio id="remoteAudio" autoplay></audio>
+                <button onclick="endCall()" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: auto;">End Call</button>
+            </div>
+
+            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                <button onclick="startCall('audio')" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-top:0; font-size: 12px;">Audio Call</button>
+                <button onclick="startCall('video')" style="background: #3b82f6; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-top:0; font-size: 12px;">Video Call</button>
+            </div>  
             <div id="callContainer" style="display: none; background: #111; padding: 10px; text-align: center; border-radius: 6px; margin-bottom: 10px;">
                 <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
                     <video id="localVideo" autoplay muted playsinline style="width: 100px; height: 80px; border-radius: 4px; background: #000; object-fit: cover;"></video>
